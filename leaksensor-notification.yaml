@@ -1,25 +1,17 @@
 blueprint:
   name: Leak detection & notifier
-  description: Send notifications when a moisture sensor detects a leak
+  description: Run custom actions when a moisture sensor detects a leak
   domain: automation
 
   input:
-    notify_device:
-      name: Mobile notify device
-      description: Device to receive mobile app notification
+    leak_detected_actions:
+      name: Leak Detected Actions
+      description: >
+        Actions to run when a leak is detected.
+        Can include mobile notifications, Alexa TTS, lights, sirens, etc.
       default: []
       selector:
-        device:
-          integration: mobile_app
-          multiple: false
-
-    alexa_notify_service:
-      name: Alexa notify service
-      description: >
-        Alexa notification service (example: notify.alexa_media_kitchen)
-      default: ""
-      selector:
-        text:
+        action: {}
 
 trigger:
   - platform: event
@@ -45,27 +37,6 @@ action:
       leak_message: >
         {{ leak_sensor }} has detected a leak.
 
-  # Mobile notification
-  - if:
-      - condition: template
-        value_template: >
-          {{ !input notify_device != [] }}
-    then:
-      - domain: mobile_app
-        type: notify
-        device_id: !input notify_device
-        title: "Leak detected!"
-        message: "{{ leak_message }}"
-
-  # Alexa notification
-  - if:
-      - condition: template
-        value_template: >
-          {{ !input alexa_notify_service != "" }}
-    then:
-      - service: !input alexa_notify_service
-        data:
-          title: "Leak detected!"
-          message: "{{ leak_message }}"
+  - sequence: !input leak_detected_actions
 
 mode: single
