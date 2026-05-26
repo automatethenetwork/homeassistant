@@ -4,11 +4,20 @@ blueprint:
   domain: automation
 
   input:
+    notify_devices:
+      name: Mobile notify devices
+      description: Devices to receive leak notifications
+      default: []
+      selector:
+        device:
+          integration: mobile_app
+          multiple: true
+
     leak_detected_actions:
-      name: Leak Detected Actions
+      name: Additional Leak Actions
       description: >
-        Actions to run when a leak is detected.
-        Can include mobile notifications, Alexa TTS, lights, sirens, etc.
+        Optional additional actions such as Alexa TTS,
+        lights, sirens, scripts, etc.
       default: []
       selector:
         action: {}
@@ -34,9 +43,23 @@ action:
   - variables:
       leak_sensor: >
         {{ trigger.event.data.new_state.attributes.friendly_name }}
+
       leak_message: >
         {{ leak_sensor }} has detected a leak.
 
+      devices: !input notify_devices
+
+  # Send notification to all selected mobile devices
+  - repeat:
+      for_each: "{{ devices }}"
+      sequence:
+        - domain: mobile_app
+          type: notify
+          device_id: "{{ repeat.item }}"
+          title: "Leak detected!"
+          message: "{{ leak_message }}"
+
+  # Run any additional user-defined actions
   - sequence: !input leak_detected_actions
 
 mode: single
